@@ -9,3 +9,25 @@
  * Output: Cleaned global map
  */
 
+#include <glog/logging.h>
+#include <pcl/io/pcd_io.h>
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
+
+#include <filesystem>
+#include <fstream>
+#include <iostream>
+#include <string>
+
+int main(int argc, char** argv) {
+    google::InitGoogleLogging(argv[0]);
+    google::InstallFailureSignalHandler();
+    FLAGS_colorlogtostderr = true;
+    google::SetStderrLogging(google::INFO);
+
+    LOG(INFO) << "Start to process... octomap...";
+    // TODO
+
+
+    return 0;
+}

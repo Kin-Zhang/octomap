@@ -19,13 +19,46 @@ Test computer and System:
 - Desktop setting: i9-12900KF, 64GB RAM, Swap 90GB, 1TB SSD
 - System setting: Ubuntu 20.04
 - Test Date: 2023/04/06
-- Modified Version commit: https://github.com/Kin-Zhang/ERASOR/tree/7528b6672091213f113d253e23d5857a33208dc6
+- Modified Version commit: https://github.com/Kin-Zhang/octomap/tree/92a9f14cafa5f567c47b58cbe91137c9a6ba1b0c
+
+Dependencies:
+### PCL
+
+
+### glog gflag (only for debug)
+glog gflag for debug only, will remove on release version
+```sh
+sh -c "$(wget -O- https://raw.githubusercontent.com/Kin-Zhang/Kin-Zhang/main/Dockerfiles/latest_glog_gflag.sh)"
+```
+
+### yaml-cpp
+Please set the FLAG, check this issue if you want to know more: https://github.com/jbeder/yaml-cpp/issues/682, [TOOD inside the CMakeLists.txt](https://github.com/jbeder/yaml-cpp/issues/566)
+
+If you install in Ubuntu 22.04, please check this commit: https://github.com/jbeder/yaml-cpp/commit/c86a9e424c5ee48e04e0412e9edf44f758e38fb9 which is the version could build in 22.04
+
+```sh
+cd ${Tmp_folder}
+git clone https://github.com/jbeder/yaml-cpp.git && cd yaml-cpp
+env CFLAGS='-fPIC' CXXFLAGS='-fPIC' cmake -Bbuild
+cmake --build build --config Release
+sudo cmake --build build --config Release --target install
+```
 
 ## Run
 
 
 
+
 ## Demo
+
+Result:
+
+
+
+
+Octomap Timing:
+
+
 
 **But DUFOMap is better** than octomap and fastest! please check our benchmark here [TODO](TODO)
 

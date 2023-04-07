@@ -25,9 +25,9 @@
 #define ANSI_BOLD "\033[1m"
 
 // CHANGE Point Type Here!!! If you want to use XYZI, change to pcl::PointXYZI
-// typedef pcl::PointXYZ PointT;
-typedef pcl::PointXYZI PointT;
-// typedef pcl::PointXYZRGB PointT;
+// typedef pcl::PointXYZ PointType;
+typedef pcl::PointXYZI PointType;
+// typedef pcl::PointXYZRGB PointType;
 
 namespace common {
 struct Config {

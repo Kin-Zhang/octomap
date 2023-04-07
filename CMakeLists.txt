@@ -27,7 +27,7 @@ find_package(yaml-cpp REQUIRED)
 find_package(PCL REQUIRED)
 set(FUN_LIB Eigen3::Eigen)
 
-include_directories(include)
+include_directories(octomap_mapping/include)
 add_library(dufo_lib SHARED octomap_mapping/src/octomapper.cpp)
 target_link_libraries(dufo_lib ${LOG_LIB} yaml-cpp ${FUN_LIB} ${PCL_LIBRARIES})
 

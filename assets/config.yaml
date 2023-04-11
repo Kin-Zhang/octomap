@@ -1,2 +1,14 @@
+# main param, -1 means no range limit
+resolution: 0.1
+maxRange: -1.0
+minRange: -1.0
+
+probHit: 0.7
+probMiss: 0.4
+thresMin: 0.12
+thresMax: 0.97
+
+# whether prune tree
+prune_tree: true
 
 verbose: true

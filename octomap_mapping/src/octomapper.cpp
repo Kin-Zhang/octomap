@@ -28,9 +28,21 @@ namespace octomap {
         m_octree->setClampingThresMax(cfg_.thresMax);
         m_maxTreeDepth = m_treeDepth;
     }
+    
     void MapUpdater::setConfig(){
-        // TODO
+        cfg_.m_res = yconfig["resolution"].as<float>();
+        cfg_.m_maxRange = yconfig["maxRange"].as<float>();
+        cfg_.m_minRange = yconfig["minRange"].as<float>();
+
+        cfg_.probHit = yconfig["probHit"].as<float>();
+        cfg_.probMiss = yconfig["probMiss"].as<float>();
+        cfg_.thresMin = yconfig["thresMin"].as<float>();
+        cfg_.thresMax = yconfig["thresMax"].as<float>();
+
+        cfg_.m_prune = yconfig["prune_tree"].as<bool>();
+        cfg_.verbose_ = yconfig["verbose"].as<bool>();
     }
+
     void MapUpdater::run(pcl::PointCloud<PointType>::Ptr const& single_pc){
         // read pose in VIEWPOINT Field in pcd
         float x_curr = single_pc->sensor_origin_[0];

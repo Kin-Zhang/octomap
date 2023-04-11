@@ -94,7 +94,7 @@ int main(int argc, char** argv) {
 	map_updater.timing.setColor("4. Query & Write", ufo::Timing::boldRedColor());
 	// timing.setColor("5. Write     ", ufo::Timing::boldBlueColor());
 
-	printf("\nERASOR Timings:\n");
+	printf("\nOctomap Timings:\n");
 	printf("\t Component\t\tTotal\tLast\tMean\tStDev\t Min\t Max\t Steps\n");
 	for (auto const& tag : map_updater.timing.tags()) {
 		printf("\t%s%s\t%5.2f\t%5.4f\t%5.4f\t%5.4f\t%5.4f\t%5.4f\t%6lu%s\n",

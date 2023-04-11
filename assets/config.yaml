@@ -11,4 +11,4 @@ thresMax: 0.97
 # whether prune tree
 prune_tree: true
 
-verbose: true
+verbose: false

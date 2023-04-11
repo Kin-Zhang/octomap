@@ -13,18 +13,40 @@
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 
+#include "octomap/octomap.h"
 #include "utils.h"
-
+#include "timing.hpp"
 namespace octomap {
 class MapUpdater {
-  public:
-    MapUpdater(const std::string &config_file_path);
-    virtual ~MapUpdater() = default;
-    void setRawMap(const pcl::PointCloud<PointType>::Ptr &rawmap);
-    void setConfig();
-    void run();
+public:
+  MapUpdater(const std::string &config_file_path);
+  virtual ~MapUpdater() = default;
+  void setConfig();
+  void run(pcl::PointCloud<PointType>::Ptr const& single_pc);
+  void saveMap(std::string const& folder_path);
+  ufo::Timing timing;
+
+
 private:
     YAML::Node yconfig;
+    common::Config cfg_;
+    OcTreeT* m_octree;
+    octomap::KeyRay m_keyRay;  // temp storage for ray casting
+    octomap::OcTreeKey m_updateBBXMin;
+    octomap::OcTreeKey m_updateBBXMax;
+    unsigned m_treeDepth;
+    unsigned m_maxTreeDepth;
+protected:
+    inline static void updateMinKey(const octomap::OcTreeKey& in, octomap::OcTreeKey& min) {
+      for (unsigned i = 0; i < 3; ++i)
+        min[i] = std::min(in[i], min[i]);
     };
+
+    inline static void updateMaxKey(const octomap::OcTreeKey& in, octomap::OcTreeKey& max) {
+      for (unsigned i = 0; i < 3; ++i)
+        max[i] = std::max(in[i], max[i]);
+    };
+
+};
 
 }  // namespace octomap

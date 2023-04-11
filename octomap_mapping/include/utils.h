@@ -14,7 +14,7 @@
 #include <string>
 #include <pcl/point_types.h>
 
-
+#include "octomap/octomap.h"
 #define ANSI_RED "\033[1m\x1b[31m"
 #define ANSI_GREEN "\033[1m\x1b[32m"
 #define ANSI_YELLOW "\033[1m\x1b[33m"
@@ -26,37 +26,32 @@
 
 // CHANGE Point Type Here!!! If you want to use XYZI, change to pcl::PointXYZI
 // typedef pcl::PointXYZ PointType;
-typedef pcl::PointXYZI PointType;
+typedef pcl::PointXYZ PointType;
+typedef octomap::OcTree OcTreeT;
+
 // typedef pcl::PointXYZRGB PointType;
+// typedef octomap::ColorOcTree OcTreeT;
 
 namespace common {
 struct Config {
-  /**< Parameters of MapUpdater*/
-  double query_voxel_size_;
-  double map_voxel_size_;
-  int removal_interval_;
-  int global_voxelization_period_;
 
-  /**< Params. of Volume of Interest (VoI) */
-  double max_range_;
-  int num_rings_, num_sectors_;
-  double min_h_, max_h_;
-  double th_bin_max_h, scan_ratio_threshold;
+  // octomap params, default from octomap_mapping repo
+  float m_res = 0.1;  // resolution of the map
+  float probHit = 0.7;
+  float probMiss = 0.4;
+  float thresMin = 0.12;
+  float thresMax = 0.97;
+  bool m_prune = true;  // prune the tree after insertion of new data
 
-  double submap_size_;
-  double submap_center_x_;
-  double submap_center_y_;
+  // range, // -1 means no range limit
+  float m_maxRange = -1.0;
+  float m_minRange = -1.0;
 
-  double th_seeds_heights_ = 0.5;
-  double th_dist_ = 0.05;
-  int num_lprs_ = 10;
-  int minimum_num_pts = 6;
-  int iter_groundfilter_ = 3;
-  int num_lowest_pts = 5;
-  bool verbose_ = true;  // print out logs
+
+  bool verbose_ = false;  // print out logs
 
   std::string mode = "naive";
-  bool replace_intensity = false;
+
 };
 
 }  // namespace common

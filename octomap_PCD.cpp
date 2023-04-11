@@ -41,14 +41,6 @@ int main(int argc, char** argv) {
 
     octomap::MapUpdater map_updater(config_file);
 
-    // load raw map
-    std::string rawmap_path = pcd_parent + "/raw_map.pcd";
-    pcl::PointCloud<PointType>::Ptr rawmap(new pcl::PointCloud<PointType>);
-    pcl::io::loadPCDFile<PointType>(rawmap_path, *rawmap);
-    LOG(INFO) << "Raw map loaded, size: " << rawmap->size();
-
-    map_updater.setRawMap(rawmap);
-
     std::vector<std::string> filenames;
     for (const auto &entry : std::filesystem::directory_iterator(std::filesystem::path(pcd_parent) / "pcd")) {
         filenames.push_back(entry.path().string());
@@ -67,6 +59,50 @@ int main(int argc, char** argv) {
         }
     }
 
+    for (const auto & filename : filenames) {
+        std::ostringstream log_msg;
+        if(cnt>1){
+            log_msg << "(" << cnt << "/" << run_max << ") Processing: " << filename << " Time Cost: " 
+                << map_updater.timing.lastSeconds("1. Ray SetFreeOc") 
+                + map_updater.timing.lastSeconds("2. Update Octree") 
+                + map_updater.timing.lastSeconds("3. Prune Tree   ") << "s";
+            std::string spaces(10, ' ');
+            log_msg << spaces;
+            // std::cout <<log_msg.str()<<std::endl;
+            std::cout << "\r" <<log_msg.str() << std::flush;
+        }
 
+        if (filename.substr(filename.size() - 4) != ".pcd")
+            continue;
+
+        pcl::PointCloud<PointType>::Ptr pcd(new pcl::PointCloud<PointType>);
+        pcl::io::loadPCDFile<PointType>(filename, *pcd);
+        map_updater.run(pcd);
+        cnt++;
+        if(cnt>run_max)
+            break;
+    }
+    map_updater.timing.start("4. Query & Write");
+    map_updater.saveMap(pcd_parent);
+    map_updater.timing.stop("4. Query & Write");
+
+    // set print color
+	// map_updater.timing.setColor("0. Set ground   ", ufo::Timing::boldYellowColor());
+	map_updater.timing.setColor("1. Ray SetFreeOc", ufo::Timing::boldCyanColor());
+	map_updater.timing.setColor("2. Update Octree", ufo::Timing::boldMagentaColor());
+	map_updater.timing.setColor("3. Prune Tree   ", ufo::Timing::boldGreenColor());
+	map_updater.timing.setColor("4. Query & Write", ufo::Timing::boldRedColor());
+	// timing.setColor("5. Write     ", ufo::Timing::boldBlueColor());
+
+	printf("\nERASOR Timings:\n");
+	printf("\t Component\t\tTotal\tLast\tMean\tStDev\t Min\t Max\t Steps\n");
+	for (auto const& tag : map_updater.timing.tags()) {
+		printf("\t%s%s\t%5.2f\t%5.4f\t%5.4f\t%5.4f\t%5.4f\t%5.4f\t%6lu%s\n",
+		       map_updater.timing.color(tag).c_str(), tag.c_str(), map_updater.timing.totalSeconds(tag),
+		       map_updater.timing.lastSeconds(tag), map_updater.timing.meanSeconds(tag), map_updater.timing.stdSeconds(tag),
+		       map_updater.timing.minSeconds(tag), map_updater.timing.maxSeconds(tag), map_updater.timing.numSamples(tag),
+		       ufo::Timing::resetColor());
+	}
+    LOG(INFO) << ANSI_GREEN << "Done! " << ANSI_RESET << "Check the output in " << pcd_parent << ", file:" << "octomap_output.pcd";
     return 0;
 }

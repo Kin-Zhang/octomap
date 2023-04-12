@@ -142,16 +142,16 @@ namespace octomap {
                     pt.intensity = 0;
                     octomap_map_->push_back(pt);
                 }
-                else{
-                    pt.intensity = 1;
-                    octomap_map_->push_back(pt);
-                }
+                // else{
+                //     pt.intensity = 1;
+                //     octomap_map_->push_back(pt);
+                // }
             }
             if (octomap_map_->size() == 0) {
                 LOG(WARNING) << "\noctomap_map_ is empty, no map is saved";
                 return;
             }
-            pcl::io::savePCDFileBinary(folder_path + "/octomap_output.pcd", *octomap_map_);
+            pcl::io::savePCDFileBinary(folder_path + "/octomap_output_clean.pcd", *octomap_map_);
         }
         else{
             pcl::PointCloud<PointType>::Ptr octomap_map_(new pcl::PointCloud<PointType>);

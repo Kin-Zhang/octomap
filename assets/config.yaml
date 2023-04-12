@@ -11,4 +11,7 @@ thresMax: 0.97
 # whether prune tree
 prune_tree: true
 
+# will label dynamic as intensity 1 not removed.
+replace_intensity: false
+
 verbose: false

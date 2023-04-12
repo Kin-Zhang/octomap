@@ -49,7 +49,7 @@ struct Config {
 
 
   bool verbose_ = false;  // print out logs
-
+  bool replace_intensity = false;
   std::string mode = "naive";
 
 };

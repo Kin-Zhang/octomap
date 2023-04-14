@@ -87,7 +87,7 @@ int main(int argc, char** argv) {
     map_updater.timing.stop("4. Query & Write");
 
     // set print color
-	// map_updater.timing.setColor("0. Set ground   ", ufo::Timing::boldYellowColor());
+	map_updater.timing.setColor("0. Fit ground   ", ufo::Timing::boldYellowColor());
 	map_updater.timing.setColor("1. Ray SetFreeOc", ufo::Timing::boldCyanColor());
 	map_updater.timing.setColor("2. Update Octree", ufo::Timing::boldMagentaColor());
 	map_updater.timing.setColor("3. Prune Tree   ", ufo::Timing::boldGreenColor());

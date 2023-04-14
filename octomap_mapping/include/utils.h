@@ -50,7 +50,12 @@ struct Config {
 
   bool verbose_ = false;  // print out logs
   bool replace_intensity = false;
-  std::string mode = "naive";
+  bool filterGroundPlane = false;
+
+  // SAC segmentation params ground plane
+  float m_groundFilterDistance = 0.04;
+  float m_groundFilterAngle = 0.15;
+  float m_groundFilterPlaneDistance = 0.07;
 
 };
 

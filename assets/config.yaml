@@ -11,6 +11,12 @@ thresMax: 0.97
 # whether prune tree
 prune_tree: true
 
+# ===> Ground Segmentation, so that we will not count ground
+filterGroundPlane: true
+m_groundFilterDistance: 0.04
+m_groundFilterAngle: 0.15
+m_groundFilterPlaneDistance: 0.15
+
 # will label dynamic as intensity 1 not removed.
 replace_intensity: true
 

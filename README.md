@@ -49,11 +49,11 @@ sudo cmake --build build --config Release --target install
 ```bash
 ./octomap_run /home/kin/workspace/DUFOMap/data/KITTI_00 ../assets/config.yaml -1
 ```
-
+- `-1` means all frames in the pcd folder, default is only 1 frame.
 
 ## Demo
 
-Result with the default setting config inside `utils.h`
+Result with the default setting config in [assets/config.yaml](assets/config.yaml). Note we implement this one based on the octomapping and also this task like fit ground and set as static. So the `octomap` result is better than others' paper comparison table.
 
 ![](assets/imgs/demo.png)
 
@@ -61,10 +61,11 @@ Octomap Timing:
 ```    
 Octomap Timings:
          Component              Total   Last    Mean    StDev    Min     Max     Steps
-        1. Ray SetFreeOc        243.89  1.7677  1.7297  0.1956  1.3765  2.0845     141
-        2. Update Octree        79.49   0.7699  0.5638  0.1846  0.3460  1.3758     141
-        3. Prune Tree           18.45   0.2310  0.1309  0.0475  0.0232  0.2310     141
-        4. Query &Write          2.87   2.8699  2.8699    nan   2.8699  2.8699       1
+        0. Fit ground           42.56   0.3509  0.3018  0.0681  0.1148  0.4551     141
+        1. Ray SetFreeOc        208.67  1.5266  1.4799  0.1884  1.1213  1.9735     141
+        2. Update Octree        125.70  1.0127  0.8915  0.2151  0.5576  1.6663     141
+        3. Prune Tree           18.33   0.2292  0.1300  0.0470  0.0215  0.2292     141
+        4. Query & Write         6.01   6.0091  6.0091    nan   6.0091  6.0091       1
 ```
 
 

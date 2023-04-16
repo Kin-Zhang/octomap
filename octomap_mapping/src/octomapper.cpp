@@ -15,6 +15,7 @@
 #include <pcl/filters/filter.h>
 #include <pcl/filters/extract_indices.h>
 #include <pcl/segmentation/sac_segmentation.h>
+#include <pcl/filters/statistical_outlier_removal.h>
 #include <pcl/filters/voxel_grid.h>
 
 #include "octomapper.h"
@@ -35,6 +36,9 @@ namespace octomap {
         m_maxTreeDepth = m_treeDepth;
 
         ground_pts.reset(new pcl::PointCloud<PointType>());
+        noise_cloud.reset(new pcl::PointCloud<PointType>());
+        LOG(INFO) << "resolution: " << cfg_.m_res << ". Ground filter: " 
+        << cfg_.filterGroundPlane << ", Noise filter: " << cfg_.filterNoise;
     }
     
     void MapUpdater::setConfig(){
@@ -57,7 +61,11 @@ namespace octomap {
             cfg_.m_groundFilterAngle = yconfig["m_groundFilterAngle"].as<float>();
             cfg_.m_groundFilterPlaneDistance = yconfig["m_groundFilterPlaneDistance"].as<float>();
         }
-
+        cfg_.filterNoise = yconfig["filterNoise"].as<bool>();
+        if(cfg_.filterNoise){
+            cfg_.StddevMulThresh = yconfig["StddevMulThresh"].as<float>();
+            cfg_.filterMeanK = yconfig["filterMeanK"].as<int>();
+        }
     }
 
     void MapUpdater::run(pcl::PointCloud<PointType>::Ptr const& single_pc){
@@ -65,6 +73,26 @@ namespace octomap {
         float x_curr = single_pc->sensor_origin_[0];
         float y_curr = single_pc->sensor_origin_[1];
         float z_curr = single_pc->sensor_origin_[2];
+
+        pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered (new pcl::PointCloud<pcl::PointXYZ>);
+        if(cfg_.filterNoise){
+            pcl::StatisticalOutlierRemoval<PointType> sor(true);
+            sor.setInputCloud(single_pc);
+            sor.setMeanK (cfg_.filterMeanK);
+            sor.setStddevMulThresh (cfg_.StddevMulThresh);
+            sor.filter (*cloud_filtered);
+            auto noise_indices = sor.getRemovedIndices();
+
+            noise_cloud->clear();
+            pcl::ExtractIndices<PointType> eifilter(false); // Initializing with true will allow us to extract the removed indices
+            eifilter.setInputCloud (single_pc);
+            eifilter.setIndices(noise_indices);
+            eifilter.filter (*noise_cloud);
+        }
+        else{
+            std::vector<int> indices;
+            pcl::removeNaNFromPointCloud(*single_pc, *cloud_filtered, indices);
+        }
 
         LOG_IF(INFO, cfg_.verbose_) << "x_curr: " << x_curr << ", y_curr: " << y_curr;
 
@@ -78,17 +106,12 @@ namespace octomap {
         pcl::PointCloud<PointType>::Ptr pc_nonground(new pcl::PointCloud<PointType>);
         pcl::PointCloud<PointType>::Ptr pc_ground(new pcl::PointCloud<PointType>);
 
-        // for filter NaN pts
-        pcl::PointCloud<PointType>::Ptr noNan_single_pc(new pcl::PointCloud<PointType>);
-        std::vector<int> indices;
-        pcl::removeNaNFromPointCloud(*single_pc, *noNan_single_pc, indices);
-
         timing.start("0. Fit ground   ");
         if(cfg_.filterGroundPlane){
-            filterGroundPlane(noNan_single_pc, pc_ground, pc_nonground);
+            filterGroundPlane(cloud_filtered, pc_ground, pc_nonground);
         }
         else{
-            pc_nonground = noNan_single_pc;
+            pc_nonground = cloud_filtered;
         }
         // instead of direct scan insertion, compute update to filter ground:
         octomap::KeySet free_cells, occupied_cells;
@@ -122,6 +145,24 @@ namespace octomap {
         }
         timing.stop("0. Fit ground   ");
         timing.start("1. Ray SetFreeOc");
+        // noise directly to occupied, no need ray for them
+        for(pcl::PointCloud<PointType>::const_iterator it = noise_cloud->begin(); it != noise_cloud->end(); ++it){
+            octomap::point3d point(it->x, it->y, it->z);
+
+            if ((cfg_.m_minRange > 0) && (point - sensorOrigin).norm() < cfg_.m_minRange) continue;
+
+            // maxrange check
+            if ((cfg_.m_maxRange > 0.0) && ((point - sensorOrigin).norm() > cfg_.m_maxRange) ) {
+                point = sensorOrigin + (point - sensorOrigin).normalized() * cfg_.m_maxRange;
+            }
+
+            octomap::OcTreeKey endKey;
+            if (m_octree->coordToKeyChecked(point, endKey)){
+                occupied_cells.insert(endKey);
+                updateMinKey(endKey, m_updateBBXMin);
+                updateMaxKey(endKey, m_updateBBXMax);
+            }
+        }
         // step B: free on ray, occupied on endpoint
         for (pcl::PointCloud<PointType>::const_iterator it = pc_nonground->begin(); it != pc_nonground->end(); ++it){
             octomap::point3d point(it->x, it->y, it->z);
@@ -232,26 +273,74 @@ namespace octomap {
         voxel_grid.setLeafSize(voxel_size, voxel_size, voxel_size);
         voxel_grid.filter(*cloud_voxelized);
     }
-
     void MapUpdater::saveMap(std::string const& folder_path) {
+
+        pcl::PointCloud<PointType>::Ptr rawmap(new pcl::PointCloud<PointType>);
+        std::string rawmap_path = folder_path + "/raw_map.pcd";
+        pcl::io::loadPCDFile<PointType>(rawmap_path, *rawmap);
         pcl::PointCloud<PointType>::Ptr octomap_map_(new pcl::PointCloud<PointType>);
-        LOG(INFO) << "\nSaving octomap from octree to pcd file...";
-        // traverse the octree and save the points, traverse all leafs in the tree:
-        for (OcTreeT::iterator it = m_octree->begin(m_maxTreeDepth), end = m_octree->end(); it != end; ++it){
-            if (m_octree->isNodeOccupied(*it)){
-                // get the center of the voxel
-                double z = it.getZ();
-                double x = it.getX();
-                double y = it.getY();
-                PointType p(x, y, z);
-                octomap_map_->push_back(p);
+
+        octomap::OcTreeKey key;
+        for(auto &pt: rawmap->points){
+            octomap::point3d point(pt.x, pt.y, pt.z);
+            octomap::OcTreeNode* node = m_octree->search(point);
+            if (node == nullptr){
+                LOG_IF(WARNING, cfg_.verbose_) << "Cannot find the Key in octomap at: " << point;
+                continue;
             }
+            if (m_octree->isNodeOccupied(node)){
+                octomap_map_->push_back(pt);
+            }
+            // else{
+            //     pt.intensity = 1;
+            //     octomap_map_->push_back(pt);
+            // }
         }
-        *octomap_map_ += *ground_pts;
+        LOG(INFO) << "\n\nground pts size" << ground_pts->size() << " octomap map size: " << octomap_map_->size() << " noise cloud size: " << noise_cloud->size();
+        // insert all ground pts which in octomap there are free
+        *octomap_map_ = *octomap_map_ + *ground_pts + *noise_cloud;
+        // for(auto &pt: ground_pts->points){
+        //     pcl::PointXYZI pti;
+        //     pti.x = pt.x;
+        //     pti.y = pt.y;
+        //     pti.z = pt.z;
+        //     pti.intensity = 0;
+        //     octomap_map_->push_back(pti);
+        // }
+        // for(auto &pt: noise_cloud->points){
+        //     pcl::PointXYZI pti;
+        //     pti.x = pt.x;
+        //     pti.y = pt.y;
+        //     pti.z = pt.z;
+        //     pti.intensity = 0;
+        //     octomap_map_->push_back(pti);
+        // }
         if (octomap_map_->size() == 0) {
             LOG(WARNING) << "\noctomap_map_ is empty, no map is saved";
             return;
         }
+        LOG(INFO) << "filter param: " << cfg_.filterMeanK << " StdThre:" << cfg_.StddevMulThresh;
         pcl::io::savePCDFileBinary(folder_path + "/octomap_output.pcd", *octomap_map_);
+        // }
+        // else{
+        //     pcl::PointCloud<PointType>::Ptr octomap_map_(new pcl::PointCloud<PointType>);
+        //     LOG(INFO) << "\nSaving octomap from octree to pcd file...";
+        //     // traverse the octree and save the points, traverse all leafs in the tree:
+        //     for (OcTreeT::iterator it = m_octree->begin(m_maxTreeDepth), end = m_octree->end(); it != end; ++it){
+        //         if (m_octree->isNodeOccupied(*it)){
+        //             // get the center of the voxel
+        //             double z = it.getZ();
+        //             double x = it.getX();
+        //             double y = it.getY();
+        //             PointType p(x, y, z);
+        //             octomap_map_->push_back(p);
+        //         }
+        //     }
+        //     if (octomap_map_->size() == 0) {
+        //         LOG(WARNING) << "\noctomap_map_ is empty, no map is saved";
+        //         return;
+        //     }
+        //     pcl::io::savePCDFileBinary(folder_path + "/octomap_output.pcd", *octomap_map_);
+        // }
     }
 }  // namespace octomap

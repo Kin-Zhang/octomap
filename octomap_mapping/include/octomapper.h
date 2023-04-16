@@ -40,7 +40,8 @@ private:
     void filterGroundPlane(pcl::PointCloud<PointType>::Ptr const& pc, 
                            pcl::PointCloud<PointType>::Ptr &ground, 
                            pcl::PointCloud<PointType>::Ptr &nonground);
-                           
+    pcl::PointCloud<PointType>::Ptr noise_cloud;
+
 protected:
     inline static void updateMinKey(const octomap::OcTreeKey& in, octomap::OcTreeKey& min) {
       for (unsigned i = 0; i < 3; ++i)

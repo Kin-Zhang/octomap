@@ -57,6 +57,10 @@ struct Config {
   float m_groundFilterAngle = 0.15;
   float m_groundFilterPlaneDistance = 0.07;
 
+  // filter noise
+  bool filterNoise = false;
+  float StddevMulThresh = 1.0;
+  int filterMeanK = 50;
 };
 
 }  // namespace common

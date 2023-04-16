@@ -274,73 +274,24 @@ namespace octomap {
         voxel_grid.filter(*cloud_voxelized);
     }
     void MapUpdater::saveMap(std::string const& folder_path) {
-
-        pcl::PointCloud<PointType>::Ptr rawmap(new pcl::PointCloud<PointType>);
-        std::string rawmap_path = folder_path + "/raw_map.pcd";
-        pcl::io::loadPCDFile<PointType>(rawmap_path, *rawmap);
         pcl::PointCloud<PointType>::Ptr octomap_map_(new pcl::PointCloud<PointType>);
-
-        octomap::OcTreeKey key;
-        for(auto &pt: rawmap->points){
-            octomap::point3d point(pt.x, pt.y, pt.z);
-            octomap::OcTreeNode* node = m_octree->search(point);
-            if (node == nullptr){
-                LOG_IF(WARNING, cfg_.verbose_) << "Cannot find the Key in octomap at: " << point;
-                continue;
+        LOG(INFO) << "\nSaving octomap from octree to pcd file...";
+        // traverse the octree and save the points, traverse all leafs in the tree:
+        for (OcTreeT::iterator it = m_octree->begin(m_maxTreeDepth), end = m_octree->end(); it != end; ++it){
+            if (m_octree->isNodeOccupied(*it)){
+                // get the center of the voxel
+                double z = it.getZ();
+                double x = it.getX();
+                double y = it.getY();
+                PointType p(x, y, z);
+                octomap_map_->push_back(p);
             }
-            if (m_octree->isNodeOccupied(node)){
-                octomap_map_->push_back(pt);
-            }
-            // else{
-            //     pt.intensity = 1;
-            //     octomap_map_->push_back(pt);
-            // }
         }
-        LOG(INFO) << "\n\nground pts size" << ground_pts->size() << " octomap map size: " << octomap_map_->size() << " noise cloud size: " << noise_cloud->size();
-        // insert all ground pts which in octomap there are free
-        *octomap_map_ = *octomap_map_ + *ground_pts + *noise_cloud;
-        // for(auto &pt: ground_pts->points){
-        //     pcl::PointXYZI pti;
-        //     pti.x = pt.x;
-        //     pti.y = pt.y;
-        //     pti.z = pt.z;
-        //     pti.intensity = 0;
-        //     octomap_map_->push_back(pti);
-        // }
-        // for(auto &pt: noise_cloud->points){
-        //     pcl::PointXYZI pti;
-        //     pti.x = pt.x;
-        //     pti.y = pt.y;
-        //     pti.z = pt.z;
-        //     pti.intensity = 0;
-        //     octomap_map_->push_back(pti);
-        // }
+        *octomap_map_ += *ground_pts;
         if (octomap_map_->size() == 0) {
             LOG(WARNING) << "\noctomap_map_ is empty, no map is saved";
             return;
         }
-        LOG(INFO) << "filter param: " << cfg_.filterMeanK << " StdThre:" << cfg_.StddevMulThresh;
-        pcl::io::savePCDFileBinary(folder_path + "/octomap_output.pcd", *octomap_map_);
-        // }
-        // else{
-        //     pcl::PointCloud<PointType>::Ptr octomap_map_(new pcl::PointCloud<PointType>);
-        //     LOG(INFO) << "\nSaving octomap from octree to pcd file...";
-        //     // traverse the octree and save the points, traverse all leafs in the tree:
-        //     for (OcTreeT::iterator it = m_octree->begin(m_maxTreeDepth), end = m_octree->end(); it != end; ++it){
-        //         if (m_octree->isNodeOccupied(*it)){
-        //             // get the center of the voxel
-        //             double z = it.getZ();
-        //             double x = it.getX();
-        //             double y = it.getY();
-        //             PointType p(x, y, z);
-        //             octomap_map_->push_back(p);
-        //         }
-        //     }
-        //     if (octomap_map_->size() == 0) {
-        //         LOG(WARNING) << "\noctomap_map_ is empty, no map is saved";
-        //         return;
-        //     }
-        //     pcl::io::savePCDFileBinary(folder_path + "/octomap_output.pcd", *octomap_map_);
-        // }
+        pcl::io::savePCDFileBinary(folder_path + "/octomapfg_output.pcd", *octomap_map_);
     }
 }  // namespace octomap

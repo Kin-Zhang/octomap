@@ -60,12 +60,11 @@ int main(int argc, char** argv) {
     }
 
     for (const auto & filename : filenames) {
-        std::ostringstream log_msg;
+        map_updater.timing.start(" One Scan Cost  ");
         if(cnt>1){
+            std::ostringstream log_msg;
             log_msg << "(" << cnt << "/" << run_max << ") Processing: " << filename << " Time Cost: " 
-                << map_updater.timing.lastSeconds("1. Ray SetFreeOc") 
-                + map_updater.timing.lastSeconds("2. Update Octree") 
-                + map_updater.timing.lastSeconds("3. Prune Tree   ") << "s";
+                << map_updater.timing.lastSeconds(" One Scan Cost  ") << "s";
             std::string spaces(10, ' ');
             log_msg << spaces;
             // std::cout <<log_msg.str()<<std::endl;
@@ -78,6 +77,7 @@ int main(int argc, char** argv) {
         pcl::PointCloud<PointType>::Ptr pcd(new pcl::PointCloud<PointType>);
         pcl::io::loadPCDFile<PointType>(filename, *pcd);
         map_updater.run(pcd);
+        map_updater.timing.stop(" One Scan Cost  ");
         cnt++;
         if(cnt>run_max)
             break;

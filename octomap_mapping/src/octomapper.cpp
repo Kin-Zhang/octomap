@@ -292,6 +292,6 @@ namespace octomap {
             LOG(WARNING) << "\noctomap_map_ is empty, no map is saved";
             return;
         }
-        pcl::io::savePCDFileBinary(folder_path + "/octomapfg_output.pcd", *octomap_map_);
+        pcl::io::savePCDFileBinary(folder_path + "/octomap_output.pcd", *octomap_map_);
     }
 }  // namespace octomap

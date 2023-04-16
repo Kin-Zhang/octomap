@@ -12,13 +12,13 @@ thresMax: 0.97
 prune_tree: true
 
 # ===> Ground Segmentation, so that we will not count ground
-filterGroundPlane: true
+filterGroundPlane: false
 m_groundFilterDistance: 0.04
 m_groundFilterAngle: 0.15
 m_groundFilterPlaneDistance: 0.15
 
 # ===> Filter
-filterNoise: true
+filterNoise: false
 filterMeanK: 50
 StddevMulThresh: 1.0
 

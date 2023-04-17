@@ -23,7 +23,9 @@ public:
   virtual ~MapUpdater() = default;
   void setConfig();
   void run(pcl::PointCloud<PointType>::Ptr const& single_pc);
-  void saveMap(std::string const& folder_path);
+  void saveMap(std::string const& folder_path, std::string const& file_name);
+  void saveRawMap(std::string const& folder_path, std::string const& file_name);
+  const common::Config getCfg() { return cfg_; }
   ufo::Timing timing;
 
 
@@ -37,6 +39,7 @@ private:
     unsigned m_treeDepth;
     unsigned m_maxTreeDepth;
     pcl::PointCloud<PointType>::Ptr ground_pts;
+    pcl::PointCloud<PointType>::Ptr raw_map_ptr_;
     void filterGroundPlane(pcl::PointCloud<PointType>::Ptr const& pc, 
                            pcl::PointCloud<PointType>::Ptr &ground, 
                            pcl::PointCloud<PointType>::Ptr &nonground);

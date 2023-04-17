@@ -61,7 +61,7 @@ int main(int argc, char** argv) {
 
     for (const auto & filename : filenames) {
         map_updater.timing.start(" One Scan Cost  ");
-        if(cnt>1){
+        if(cnt>1 && !map_updater.getCfg().verbose_){
             std::ostringstream log_msg;
             log_msg << "(" << cnt << "/" << run_max << ") Processing: " << filename << " Time Cost: " 
                 << map_updater.timing.lastSeconds(" One Scan Cost  ") << "s";
@@ -83,7 +83,18 @@ int main(int argc, char** argv) {
             break;
     }
     map_updater.timing.start("4. Query & Write");
-    map_updater.saveMap(pcd_parent);
+    
+    std::string output_file;
+    if(map_updater.getCfg().filterGroundPlane && map_updater.getCfg().filterNoise)
+        output_file = "octomapfg";
+    else if(map_updater.getCfg().filterGroundPlane)
+        output_file = "octomapg";
+    else
+        output_file = "octomap";
+
+    // map_updater.saveMap(pcd_parent, output_file); // query the center point in octree directly
+    map_updater.saveRawMap(pcd_parent, output_file);
+    
     map_updater.timing.stop("4. Query & Write");
 
     // set print color
@@ -103,6 +114,6 @@ int main(int argc, char** argv) {
 		       map_updater.timing.minSeconds(tag), map_updater.timing.maxSeconds(tag), map_updater.timing.numSamples(tag),
 		       ufo::Timing::resetColor());
 	}
-    LOG(INFO) << ANSI_GREEN << "Done! " << ANSI_RESET << "Check the output in " << pcd_parent << ", file:" << "octomap_output.pcd";
+    LOG(INFO) << ANSI_GREEN << "Done! " << ANSI_RESET << "Check the output in " << pcd_parent << ", file: " << output_file + "_output.pcd";
     return 0;
 }

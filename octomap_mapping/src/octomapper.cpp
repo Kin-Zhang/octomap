@@ -37,6 +37,7 @@ namespace octomap {
 
         ground_pts.reset(new pcl::PointCloud<PointType>());
         noise_cloud.reset(new pcl::PointCloud<PointType>());
+        raw_map_ptr_.reset(new pcl::PointCloud<PointType>());
         LOG(INFO) << "resolution: " << cfg_.m_res << ". Ground filter: " 
         << cfg_.filterGroundPlane << ", Noise filter: " << cfg_.filterNoise;
     }
@@ -94,6 +95,7 @@ namespace octomap {
             pcl::removeNaNFromPointCloud(*single_pc, *cloud_filtered, indices);
         }
 
+        *raw_map_ptr_ += *single_pc;
         LOG_IF(INFO, cfg_.verbose_) << "x_curr: " << x_curr << ", y_curr: " << y_curr;
 
         octomap::point3d sensorOrigin(x_curr, y_curr, z_curr);
@@ -273,7 +275,8 @@ namespace octomap {
         voxel_grid.setLeafSize(voxel_size, voxel_size, voxel_size);
         voxel_grid.filter(*cloud_voxelized);
     }
-    void MapUpdater::saveMap(std::string const& folder_path) {
+
+    void MapUpdater::saveMap(std::string const& folder_path, std::string const& file_name) {
         pcl::PointCloud<PointType>::Ptr octomap_map_(new pcl::PointCloud<PointType>);
         LOG(INFO) << "\nSaving octomap from octree to pcd file...";
         // traverse the octree and save the points, traverse all leafs in the tree:
@@ -292,6 +295,27 @@ namespace octomap {
             LOG(WARNING) << "\noctomap_map_ is empty, no map is saved";
             return;
         }
-        pcl::io::savePCDFileBinary(folder_path + "/octomap_output.pcd", *octomap_map_);
+        pcl::io::savePCDFileBinary(folder_path + "/" + file_name + "_output.pcd", *octomap_map_);
+    }
+
+    void MapUpdater::saveRawMap(std::string const& folder_path, std::string const& file_name) {
+        pcl::PointCloud<PointType>::Ptr octomap_map_(new pcl::PointCloud<PointType>);
+        for(auto &pt: raw_map_ptr_->points) {
+            octomap::point3d point(pt.x, pt.y, pt.z);
+            octomap::OcTreeNode* node = m_octree->search(point);
+            if (node == nullptr){
+                LOG_IF(WARNING, cfg_.verbose_) << "Cannot find the Key in octomap at: " << point;
+                continue;
+            }
+            if (m_octree->isNodeOccupied(node)){
+                octomap_map_->push_back(pt);
+            }
+        }
+        *octomap_map_ += *ground_pts;
+        if (octomap_map_->size() == 0) {
+            LOG(WARNING) << "\noctomap_map_ is empty, no map is saved";
+            return;
+        }
+        pcl::io::savePCDFileBinary(folder_path + "/" + file_name + "_output.pcd", *octomap_map_);
     }
 }  // namespace octomap

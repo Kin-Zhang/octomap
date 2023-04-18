@@ -58,7 +58,7 @@ int main(int argc, char** argv) {
             run_max = total + 1;
         }
     }
-
+    map_updater.run_total_frames = run_max;
     for (const auto & filename : filenames) {
         map_updater.timing.start(" One Scan Cost  ");
         if(cnt>1 && !map_updater.getCfg().verbose_){
@@ -92,8 +92,10 @@ int main(int argc, char** argv) {
     else
         output_file = "octomap";
 
-    // map_updater.saveMap(pcd_parent, output_file); // query the center point in octree directly
-    map_updater.saveRawMap(pcd_parent, output_file);
+    if(map_updater.run_total_frames>1000)
+        map_updater.saveMap(pcd_parent, output_file); // query the center point in octree directly
+    else
+        map_updater.saveRawMap(pcd_parent, output_file);
     
     map_updater.timing.stop("4. Query & Write");
 

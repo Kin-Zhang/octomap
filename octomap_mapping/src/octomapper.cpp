@@ -94,8 +94,8 @@ namespace octomap {
             std::vector<int> indices;
             pcl::removeNaNFromPointCloud(*single_pc, *cloud_filtered, indices);
         }
-
-        *raw_map_ptr_ += *single_pc;
+        if(run_total_frames<1000)
+            *raw_map_ptr_ += *single_pc;
         LOG_IF(INFO, cfg_.verbose_) << "x_curr: " << x_curr << ", y_curr: " << y_curr;
 
         octomap::point3d sensorOrigin(x_curr, y_curr, z_curr);

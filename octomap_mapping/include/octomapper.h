@@ -27,7 +27,7 @@ public:
   void saveRawMap(std::string const& folder_path, std::string const& file_name);
   const common::Config getCfg() { return cfg_; }
   ufo::Timing timing;
-
+  int run_total_frames = 0;
 
 private:
     YAML::Node yconfig;

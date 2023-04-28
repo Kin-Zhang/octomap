@@ -92,7 +92,7 @@ int main(int argc, char** argv) {
     else
         output_file = "octomap";
 
-    if(map_updater.run_total_frames>1000)
+    if(map_updater.run_total_frames>1000 || map_updater.getCfg().replace_intensity)
         map_updater.saveMap(pcd_parent, output_file); // query the center point in octree directly
     else
         map_updater.saveRawMap(pcd_parent, output_file);

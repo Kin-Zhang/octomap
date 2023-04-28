@@ -42,7 +42,8 @@ struct Config {
   float thresMin = 0.12;
   float thresMax = 0.97;
   bool m_prune = true;  // prune the tree after insertion of new data
-
+  float OccupancyThres = 0.5;
+  
   // range, // -1 means no range limit
   float m_maxRange = -1.0;
   float m_minRange = -1.0;

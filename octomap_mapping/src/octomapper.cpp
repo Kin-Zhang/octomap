@@ -33,6 +33,8 @@ namespace octomap {
         m_octree->setProbMiss(cfg_.probMiss);
         m_octree->setClampingThresMin(cfg_.thresMin);
         m_octree->setClampingThresMax(cfg_.thresMax);
+        LOG(INFO) << "Default Occupancy Thres: " << m_octree->getOccupancyThres();
+        m_octree->setOccupancyThres(cfg_.OccupancyThres);
         m_maxTreeDepth = m_treeDepth;
 
         ground_pts.reset(new pcl::PointCloud<PointType>());
@@ -51,6 +53,7 @@ namespace octomap {
         cfg_.probMiss = yconfig["probMiss"].as<float>();
         cfg_.thresMin = yconfig["thresMin"].as<float>();
         cfg_.thresMax = yconfig["thresMax"].as<float>();
+        cfg_.OccupancyThres = yconfig["OccupancyThres"].as<float>();
 
         cfg_.m_prune = yconfig["prune_tree"].as<bool>();
         cfg_.verbose_ = yconfig["verbose"].as<bool>();
@@ -300,6 +303,7 @@ namespace octomap {
 
     void MapUpdater::saveRawMap(std::string const& folder_path, std::string const& file_name) {
         pcl::PointCloud<PointType>::Ptr octomap_map_(new pcl::PointCloud<PointType>);
+        // pcl::PointCloud<pcl::PointXYZI>::Ptr octomap_map_(new pcl::PointCloud<pcl::PointXYZI>);
         for(auto &pt: raw_map_ptr_->points) {
             octomap::point3d point(pt.x, pt.y, pt.z);
             octomap::OcTreeNode* node = m_octree->search(point);
@@ -307,11 +311,18 @@ namespace octomap {
                 LOG_IF(WARNING, cfg_.verbose_) << "Cannot find the Key in octomap at: " << point;
                 continue;
             }
+            // pcl::PointXYZI pti;
+            // pti.x = pt.x;
+            // pti.y = pt.y;
+            // pti.z = pt.z;
+            // pti.intensity = node->getOccupancy();
+            // octomap_map_->push_back(pti);
             if (m_octree->isNodeOccupied(node)){
                 octomap_map_->push_back(pt);
             }
         }
         *octomap_map_ += *ground_pts;
+        // pcl::io::savePCDFileBinary(folder_path + "/" + file_name + "_ground_output.pcd", *ground_pts);
         if (octomap_map_->size() == 0) {
             LOG(WARNING) << "\noctomap_map_ is empty, no map is saved";
             return;

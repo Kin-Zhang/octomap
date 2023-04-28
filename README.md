@@ -51,6 +51,11 @@ sudo cmake --build build --config Release --target install
 ```
 - `-1` means all frames in the pcd folder, default is only 1 frame.
 
+Or with absolute path:
+```bash
+/home/kin/workspace/DUFOMap/benchmarks/methods/octomap/build/octomap_run /home/kin/bags/VLP16_cone_two_people /home/kin/workspace/DUFOMap/benchmarks/methods/octomap/assets/config_kitti.yaml -1
+```
+
 ## Demo
 
 Result with the default setting config in [assets/config.yaml](assets/config.yaml). Note we implement this one based on the octomapping and also this task like fit ground and set as static. So the `octomap` result is better than others' paper comparison table.

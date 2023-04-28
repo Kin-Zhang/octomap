@@ -7,6 +7,7 @@ probHit: 0.7
 probMiss: 0.4
 thresMin: 0.12
 thresMax: 0.97
+OccupancyThres: 0.5
 
 # whether prune tree
 prune_tree: true
@@ -23,6 +24,6 @@ filterMeanK: 50
 StddevMulThresh: 1.0
 
 # will label dynamic as intensity 1 not removed.
-replace_intensity: true
+replace_intensity: false
 
 verbose: false

@@ -27,7 +27,7 @@ int main(int argc, char** argv) {
     google::SetStderrLogging(google::INFO);
 
     if (argc < 3) {
-        LOG(ERROR) << "Usage: ./octomap_run [pcd_folder] [config_file]";
+        LOG(ERROR) << "Usage: " << argv[0] << " [pcd_folder] [config_file]";
         return 0;
     }
     std::string pcd_parent = argv[1]; // we assume that rawmap is in pcd_parent;

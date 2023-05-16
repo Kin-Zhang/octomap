@@ -54,7 +54,6 @@ namespace octomap {
 
         cfg_.m_prune = yconfig["prune_tree"].as<bool>();
         cfg_.verbose_ = yconfig["verbose"].as<bool>();
-        cfg_.replace_intensity = yconfig["replace_intensity"].as<bool>();
 
         cfg_.filterGroundPlane = yconfig["filterGroundPlane"].as<bool>();
         if(cfg_.filterGroundPlane){

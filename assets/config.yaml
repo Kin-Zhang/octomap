@@ -22,7 +22,4 @@ filterNoise: false
 filterMeanK: 50
 StddevMulThresh: 1.0
 
-# will label dynamic as intensity 1 not removed.
-replace_intensity: true
-
 verbose: false

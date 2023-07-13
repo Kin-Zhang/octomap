@@ -46,6 +46,12 @@ sudo cmake --build build --config Release --target install
 
 ## Run
 
+Build
+```bash
+cd ${this_repo}
+cmake -B build && cmake --build build
+```
+
 ```bash
 ./octomap_run /home/kin/workspace/DUFOMap/data/KITTI_00 ../assets/config.yaml -1
 ```

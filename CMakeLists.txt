@@ -1,12 +1,13 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.0.2)
-project(octomap_dufo
+project(octomap_dynamic_map
 	VERSION 1.0.0
-	DESCRIPTION "Octomap in benchmark on dufo, dynamic in map"
+	DESCRIPTION "Octomap in benchmark on dm, dynamic in map"
 	LANGUAGES CXX
 )
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)  # enables -fPIC in applicable compilers (required to avoid link errors in some cases)
 ADD_SUBDIRECTORY(octomap)
+list(APPEND CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/build/lib/cmake/octomap")
 
 # see here: https://github.com/PointCloudLibrary/pcl/issues/3680#issuecomment-700642602
 if(NOT DEFINED CMAKE_SUPPRESS_DEVELOPER_WARNINGS)
@@ -33,12 +34,14 @@ find_package(PCL REQUIRED)
 find_package(octomap REQUIRED)
 set(FUN_LIB Eigen3::Eigen ${OCTOMAP_LIBRARIES} ${PCL_LIBRARIES})
 
+include_directories(${OCTOMAP_INCLUDE_DIRS})
 include_directories(octomap_mapping/include)
-add_library(dufo_lib SHARED octomap_mapping/src/octomapper.cpp)
-target_link_libraries(dufo_lib ${LOG_LIB} yaml-cpp ${FUN_LIB})
+add_library(dm_lib SHARED octomap_mapping/src/octomapper.cpp)
+add_dependencies(dm_lib octomap)
+target_link_libraries(dm_lib ${LOG_LIB} yaml-cpp ${FUN_LIB})
 
 ############
 # BINARIES #
 ############
 add_executable(octomap_run octomap_PCD.cpp)
-target_link_libraries(octomap_run dufo_lib)
+target_link_libraries(octomap_run dm_lib)

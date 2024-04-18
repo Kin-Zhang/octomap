@@ -46,11 +46,17 @@ Dependencies:
     ```
     
 ### Cite our benchmark
+This work is refactored during our DynamicMap benchmark. 
+
+Please also cite original work by clicking to the fork on top (core method).
+
 ```
-@article{zhang2023benchmark,
-  author={Qingwen Zhang, Daniel Duberg, Ruoyu Geng, Mingkai Jia, Lujia Wang and Patric Jensfelt},
-  title={A Dynamic Points Removal Benchmark in Point Cloud Maps},
-  journal={arXiv preprint arXiv:2307.07260},
-  year={2023}
+@inproceedings{zhang2023benchmark,
+  author={Zhang, Qingwen and Duberg, Daniel and Geng, Ruoyu and Jia, Mingkai and Wang, Lujia and Jensfelt, Patric},
+  booktitle={IEEE 26th International Conference on Intelligent Transportation Systems (ITSC)}, 
+  title={A Dynamic Points Removal Benchmark in Point Cloud Maps}, 
+  year={2023},
+  pages={608-614},
+  doi={10.1109/ITSC57777.2023.10422094}
 }
 ```

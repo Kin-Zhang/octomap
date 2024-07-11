@@ -4,7 +4,7 @@
  * @author Qingwen Zhang (https://kin-zhang.github.io/)
  * @date: 2023-04-05 23:28
  * @details: No ROS version, speed up the process
- * This file is part of DynamicMap Benchmark work (https://github.com/KTH-RPL/SeFlow).
+ * This file is part of DynamicMap Benchmark work (https://github.com/KTH-RPL/DynamicMap_Benchmark).
  * If you find this repo helpful, please cite the respective publication as 
  * listed on the above website.
  * 

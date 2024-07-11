@@ -5,7 +5,7 @@
  * @date: 2023-04-07 13:30
  * @details: header file for octomap updater
  * 
- * This file is part of DynamicMap Benchmark work (https://github.com/KTH-RPL/SeFlow).
+ * This file is part of DynamicMap Benchmark work (https://github.com/KTH-RPL/DynamicMap_Benchmark).
  * If you find this repo helpful, please cite the respective publication as 
  * listed on the above website.
  * 

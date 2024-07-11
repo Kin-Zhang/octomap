@@ -45,7 +45,7 @@ Run command:
 
 - `-1` means all frames in the pcd folder, default is only 10 frame.
 
-Demo result visualization in [CloudCompare]() on demo data (KITTI sequence 00):
+Demo result visualization in [CloudCompare](https://www.danielgm.net/cc/) on demo data (KITTI sequence 00):
 - left is raw map, and red points are dynamic points labeled by SemanticKITTI (ground truth).
 - medium is octomap_fg point-level output.
 - right is octomap_gf voxel-level output. Since some mapper may directly want downsampled map. Voxel resolution is based on the config you set in `assets/config_fg.toml` like: `octomap/resolution=0.1` (10cm) and `output/downsampled=true` (voxel-level map).

@@ -1,54 +1,69 @@
-OctoMap
+OctoMap for Dynamic Points Removal in Maps
 ---
 
-Reference [octomapping](https://github.com/OctoMap/octomap_mapping) when I write this codes.
+Author & Maintainer: [Qingwen Zhang](https://kin-zhang.github.io/). Please give us a star if you like this repo! 🌟 and don't forget reference our [DynamicMap benchmark](https://github.com/KTH-RPL/DynamicMap_Benchmark) for more detail on datasets, evaluation and comparison with other methods.
 
-No ros version! This method include improved please check [our benchmark paper](https://arxiv.org/abs/2307.07260) for more detail.
+📜 ChangeLog:
+- 2024/07/11: Remove as much as possible dependencies in this repo and update voxel-level clean map saved.
+- 2023/07/03: Update all config including octomap, octomap w G, octomap w GF.
+- 2023/04/05: Add dynamic points removal in octomap, and update the README.
 
-pcd files are enough to run this program. Need transformed and pose in VIEWPOINT. 
+## 0. Setup
 
-Please reference our [DynamicMap benchmark](https://github.com/KTH-RPL/DynamicMap_Benchmark) for more detail on datasets.
+System I tested: Ubuntu 18.04, 20.04.
 
-## Build & RUN
+Dependencies: PCL [Read and write Point Cloud], glog & gflag [Debug Printing]. Normally you may have PCL installed because of others like ROS/ROS2 etc.
 
-Build
 ```bash
-cd ${this_repo}
-mkdir build && cd build
-cmake .. && make
-./octomap_run /home/kin/data/00 ../assets/config_fg.yaml -1
+sudo apt update && sudo apt install -y libpcl-dev 
+sudo apt install -y libgoogle-glog-dev libgflags-dev
 ```
-- `-1` means all frames in the pcd folder, default is only 1 frame.
 
-Result, left is octomap_fg output, right is ground truth on KITTI sequence 00:
+git clone this repo:
+```bash
+git clone https://github.com/Kin-Zhang/octomap
+```
+
+## 1. Build & RUN
+
+Build Command:
+```bash
+cd octomap
+cmake -B build && cmake --build build
+```
+
+Prepare demo data [KITTI sequence 00 only 384.8MB], or create your own data following [these steps on Benchmark instruction](https://github.com/KTH-RPL/DynamicMap_Benchmark/blob/main/scripts/README.md#data-creation):
+```bash
+wget https://zenodo.org/records/10886629/files/00.zip
+unzip 00.zip -d ${data_path, e.g. /home/kin/data}
+```
+
+Run command:
+```bash
+./build/octomap_run /home/kin/data/00 assets/config_fg.toml -1
+```
+
+- `-1` means all frames in the pcd folder, default is only 10 frame.
+
+Demo result visualization in [CloudCompare]() on demo data (KITTI sequence 00):
+- left is raw map, and red points are dynamic points labeled by SemanticKITTI (ground truth).
+- medium is octomap_fg point-level output.
+- right is octomap_gf voxel-level output. Since some mapper may directly want downsampled map. Voxel resolution is based on the config you set in `assets/config_fg.toml` like: `octomap/resolution=0.1` (10cm) and `output/downsampled=true` (voxel-level map).
+
 ![](assets/imgs/demo.png)
 
-Dependencies:
-1. PCL
 
-2. glog gflag (only for print)
-   
-    ```bash
-    sh -c "$(wget -O- https://raw.githubusercontent.com/Kin-Zhang/Kin-Zhang/main/Dockerfiles/latest_glog_gflag.sh)"
-    ```
+## 2. Evaluation
 
-3. yaml-cpp
-    Please set the FLAG, check this issue if you want to know more: https://github.com/jbeder/yaml-cpp/issues/682, [TOOD inside the CMakeLists.txt](https://github.com/jbeder/yaml-cpp/issues/566)
+Please reference to [DynamicMap_Benchmark](https://github.com/KTH-RPL/DynamicMap_Benchmark) for the evaluation of this method and other dynamic removal methods.
 
-    If you install in Ubuntu 22.04, please check this commit: https://github.com/jbeder/yaml-cpp/commit/c86a9e424c5ee48e04e0412e9edf44f758e38fb9 which is the version could build in 22.04
+[Evaluation Section link](https://github.com/KTH-RPL/DynamicMap_Benchmark/blob/master/scripts/README.md#evaluation)
 
-    ```sh
-    cd ${Tmp_folder}
-    git clone https://github.com/jbeder/yaml-cpp.git && cd yaml-cpp
-    env CFLAGS='-fPIC' CXXFLAGS='-fPIC' cmake -Bbuild
-    cmake --build build --config Release
-    sudo cmake --build build --config Release --target install
-    ```
-    
-### Cite our benchmark
-This work is refactored during our DynamicMap benchmark. 
+## Acknowledgements & Cite
 
-Please also cite original work by clicking to the fork on top (core method).
+This implementation is based on codes from several repositories: [octomapping](https://github.com/OctoMap/octomap_mapping), [octomap](https://github.com/OctoMap/octomap). Thanks for their great work! ❤️
+
+This work and the improved version is done during our DynamicMap benchmark. Please cite in following works if you use this code:
 
 ```
 @inproceedings{zhang2023benchmark,
@@ -58,5 +73,15 @@ Please also cite original work by clicking to the fork on top (core method).
   year={2023},
   pages={608-614},
   doi={10.1109/ITSC57777.2023.10422094}
+}
+
+@article{hornung13auro,
+  author = {Armin Hornung and Kai M. Wurm and Maren Bennewitz and Cyrill Stachniss and Wolfram Burgard},
+  title = {{OctoMap}: An Efficient Probabilistic {3D} Mapping Framework Based on Octrees},
+  journal = {Autonomous Robots},
+  year = 2013,
+  volume = 34,
+  pages = {189-206},
+  doi = {10.1007/s10514-012-9321-0},
 }
 ```

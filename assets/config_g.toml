@@ -1,0 +1,28 @@
+# main param, -1 means no range limit
+[octomap]
+resolution = 0.1
+maxRange = -1.0
+minRange = -1.0
+probHit = 0.7
+probMiss = 0.4
+thresMin = 0.12
+thresMax = 0.97
+pruneTree = true
+
+# ===> Ground Segmentation, so that we will not count ground
+[ground]
+enable = true
+distance = 0.04
+angle = 0.15
+planeDistance = 0.15
+
+# ===> Filter
+[filter]
+enable = false
+filterMeanK = 50
+StddevMulThresh = 1.0
+
+[output]
+downsampled = false # whether output downsampled map based on octomap
+filename = "octomap"
+verbose = false

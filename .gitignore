@@ -29,3 +29,5 @@ Makefile
 *.graph
 
 .vscode/*
+
+*.zip

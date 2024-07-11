@@ -1,10 +1,13 @@
 /**
  * Copyright (C) 2022-now, RPL, KTH Royal Institute of Technology
- * MIT License
- * @author Kin ZHANG (https://kin-zhang.github.io/)
+ * BSD 3-Clause License
+ * @author Qingwen Zhang (https://kin-zhang.github.io/)
  * @date: 2023-04-05 23:28
  * @details: No ROS version, speed up the process
- *
+ * This file is part of DynamicMap Benchmark work (https://github.com/KTH-RPL/SeFlow).
+ * If you find this repo helpful, please cite the respective publication as 
+ * listed on the above website.
+ * 
  * Input: PCD files + Prior raw global map , check our benchmark in dufomap
  * Output: Cleaned global map
  */
@@ -32,12 +35,7 @@ int main(int argc, char** argv) {
     }
     std::string pcd_parent = argv[1]; // we assume that rawmap is in pcd_parent;
     std::string config_file = argv[2];
-    int cnt = 1, run_max = 1;
-    // check if the config_file exists
-    if (!std::filesystem::exists(config_file)) {
-        LOG(ERROR) << "Config file does not exist: " << config_file;
-        return 0;
-    }
+    int cnt = 1, run_max = 10;
 
     octomap::MapUpdater map_updater(config_file);
 
@@ -59,12 +57,13 @@ int main(int argc, char** argv) {
         }
     }
 
+    map_updater.timing.start("Total");
     for (const auto & filename : filenames) {
-        map_updater.timing.start(" One Scan Cost  ");
+        map_updater.timing[0].start("One Scan Cost");
         if(cnt>1 && !map_updater.getCfg().verbose_){
             std::ostringstream log_msg;
             log_msg << "(" << cnt << "/" << run_max << ") Processing: " << filename << " Time Cost: " 
-                << map_updater.timing.lastSeconds(" One Scan Cost  ") << "s";
+                << map_updater.timing[0].lastSeconds() << "s";
             std::string spaces(10, ' ');
             log_msg << spaces;
             // std::cout <<log_msg.str()<<std::endl;
@@ -77,43 +76,18 @@ int main(int argc, char** argv) {
         pcl::PointCloud<PointType>::Ptr pcd(new pcl::PointCloud<PointType>);
         pcl::io::loadPCDFile<PointType>(filename, *pcd);
         map_updater.run(pcd);
-        map_updater.timing.stop(" One Scan Cost  ");
+        map_updater.timing[0].stop();
         cnt++;
         if(cnt>run_max)
             break;
     }
-    map_updater.timing.start("4. Query & Write");
-    
-    std::string output_file;
-    if(map_updater.getCfg().filterGroundPlane && map_updater.getCfg().filterNoise)
-        output_file = "octomapfg";
-    else if(map_updater.getCfg().filterGroundPlane)
-        output_file = "octomapg";
-    else
-        output_file = "octomap";
+    std::cout << std::endl;
+    map_updater.timing[5].start("Save Map");
+    std::string outfilename = map_updater.saveMap(pcd_parent);
+    map_updater.timing[5].stop();
 
-    // map_updater.saveMap(pcd_parent, output_file); // query the center point in octree directly
-    map_updater.saveRawMap(pcd_parent, output_file);
-    
-    map_updater.timing.stop("4. Query & Write");
-
-    // set print color
-	map_updater.timing.setColor("0. Fit ground   ", ufo::Timing::boldYellowColor());
-	map_updater.timing.setColor("1. Ray SetFreeOc", ufo::Timing::boldCyanColor());
-	map_updater.timing.setColor("2. Update Octree", ufo::Timing::boldMagentaColor());
-	map_updater.timing.setColor("3. Prune Tree   ", ufo::Timing::boldGreenColor());
-	map_updater.timing.setColor("4. Query & Write", ufo::Timing::boldRedColor());
-	// timing.setColor("5. Write     ", ufo::Timing::boldBlueColor());
-
-	printf("\nOctomap Timings:\n");
-	printf("\t Component\t\tTotal\tLast\tMean\tStDev\t Min\t Max\t Steps\n");
-	for (auto const& tag : map_updater.timing.tags()) {
-		printf("\t%s%s\t%5.2f\t%5.4f\t%5.4f\t%5.4f\t%5.4f\t%5.4f\t%6lu%s\n",
-		       map_updater.timing.color(tag).c_str(), tag.c_str(), map_updater.timing.totalSeconds(tag),
-		       map_updater.timing.lastSeconds(tag), map_updater.timing.meanSeconds(tag), map_updater.timing.stdSeconds(tag),
-		       map_updater.timing.minSeconds(tag), map_updater.timing.maxSeconds(tag), map_updater.timing.numSamples(tag),
-		       ufo::Timing::resetColor());
-	}
-    LOG(INFO) << ANSI_GREEN << "Done! " << ANSI_RESET << "Check the output in " << pcd_parent << ", file: " << output_file + "_output.pcd";
+    map_updater.timing.stop();
+    map_updater.timing.print("DynamicOctomap", true, true);
+    LOG(INFO) << ANSI_GREEN << "Done! " << ANSI_RESET << "Check the output in " << pcd_parent << ", file: " << outfilename;
     return 0;
 }

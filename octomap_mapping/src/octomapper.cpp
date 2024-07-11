@@ -1,10 +1,14 @@
 /**
  * Copyright (C) 2022-now, RPL, KTH Royal Institute of Technology
- * MIT License
- * @author Kin ZHANG (https://kin-zhang.github.io/)
+ * BSD 3-Clause License
+ * @author Qingwen Zhang (https://kin-zhang.github.io/)
  * @date: 2023-04-07 13:29
  * @details: No ROS version, speed up the process
- *
+ * 
+ * This file is part of DynamicMap Benchmark work (https://github.com/KTH-RPL/SeFlow).
+ * If you find this repo helpful, please cite the respective publication as 
+ * listed on the above website.
+ * 
  * Input: PCD files + Prior raw global map , check our benchmark in dufomap
  * Output: Cleaned global map
  */
@@ -13,19 +17,25 @@
 #include <glog/logging.h>
 
 #include <pcl/filters/filter.h>
+#include <pcl/filters/voxel_grid.h>
 #include <pcl/filters/extract_indices.h>
 #include <pcl/segmentation/sac_segmentation.h>
 #include <pcl/filters/statistical_outlier_removal.h>
-#include <pcl/filters/voxel_grid.h>
+
 
 #include "octomapper.h"
 
 namespace octomap {
 
     MapUpdater::MapUpdater(const std::string &config_file_path ){
-        yconfig = YAML::LoadFile(config_file_path);
-        MapUpdater::setConfig();
-        // LOG_IF(INFO, cfg_.verbose_) << "Config file loaded: " << std::filesystem::canonical(config_file_path);
+        if (std::filesystem::exists(config_file_path))
+            LOG(INFO) << "Config file loaded from: " << config_file_path;
+        else{
+            LOG(ERROR) << "Config file not found: " << config_file_path;
+            exit(1);
+        }
+        toml::table tbl = toml::parse_file(config_file_path);
+        cfg_.readtoml(tbl);
 
         // initialize octomap object & params
         m_octree = new OcTreeT(cfg_.m_res);
@@ -40,32 +50,6 @@ namespace octomap {
         raw_map_ptr_.reset(new pcl::PointCloud<PointType>());
         LOG(INFO) << "resolution: " << cfg_.m_res << ". Ground filter: " 
         << cfg_.filterGroundPlane << ", Noise filter: " << cfg_.filterNoise;
-    }
-    
-    void MapUpdater::setConfig(){
-        cfg_.m_res = yconfig["resolution"].as<float>();
-        cfg_.m_maxRange = yconfig["maxRange"].as<float>();
-        cfg_.m_minRange = yconfig["minRange"].as<float>();
-
-        cfg_.probHit = yconfig["probHit"].as<float>();
-        cfg_.probMiss = yconfig["probMiss"].as<float>();
-        cfg_.thresMin = yconfig["thresMin"].as<float>();
-        cfg_.thresMax = yconfig["thresMax"].as<float>();
-
-        cfg_.m_prune = yconfig["prune_tree"].as<bool>();
-        cfg_.verbose_ = yconfig["verbose"].as<bool>();
-
-        cfg_.filterGroundPlane = yconfig["filterGroundPlane"].as<bool>();
-        if(cfg_.filterGroundPlane){
-            cfg_.m_groundFilterDistance = yconfig["m_groundFilterDistance"].as<float>();
-            cfg_.m_groundFilterAngle = yconfig["m_groundFilterAngle"].as<float>();
-            cfg_.m_groundFilterPlaneDistance = yconfig["m_groundFilterPlaneDistance"].as<float>();
-        }
-        cfg_.filterNoise = yconfig["filterNoise"].as<bool>();
-        if(cfg_.filterNoise){
-            cfg_.StddevMulThresh = yconfig["StddevMulThresh"].as<float>();
-            cfg_.filterMeanK = yconfig["filterMeanK"].as<int>();
-        }
     }
 
     void MapUpdater::run(pcl::PointCloud<PointType>::Ptr const& single_pc){
@@ -107,13 +91,12 @@ namespace octomap {
         pcl::PointCloud<PointType>::Ptr pc_nonground(new pcl::PointCloud<PointType>);
         pcl::PointCloud<PointType>::Ptr pc_ground(new pcl::PointCloud<PointType>);
 
-        timing.start("0. Fit ground   ");
-        if(cfg_.filterGroundPlane){
+        timing[1].start("Ground Segmentation");
+        if(cfg_.filterGroundPlane)
             filterGroundPlane(cloud_filtered, pc_ground, pc_nonground);
-        }
-        else{
+        else
             pc_nonground = cloud_filtered;
-        }
+
         // instead of direct scan insertion, compute update to filter ground:
         octomap::KeySet free_cells, occupied_cells;
         // step A: insert ground points only as free so that we will not get false obstacles in ground pts
@@ -144,8 +127,9 @@ namespace octomap {
             LOG_IF(INFO,cfg_.verbose_) << "Ground points: " << pc_ground->size();
             *ground_pts += *pc_ground;
         }
-        timing.stop("0. Fit ground   ");
-        timing.start("1. Ray SetFreeOc");
+        timing[1].stop();
+        
+        timing[2].start("Ray SetFreeOc");
         // noise directly to occupied, no need ray for them
         for(pcl::PointCloud<PointType>::const_iterator it = noise_cloud->begin(); it != noise_cloud->end(); ++it){
             octomap::point3d point(it->x, it->y, it->z);
@@ -167,11 +151,11 @@ namespace octomap {
         // step B: free on ray, occupied on endpoint
         for (pcl::PointCloud<PointType>::const_iterator it = pc_nonground->begin(); it != pc_nonground->end(); ++it){
             octomap::point3d point(it->x, it->y, it->z);
-
+            double pts_distance = (point - sensorOrigin).norm();
             // range filtering
-            if ((cfg_.m_minRange > 0) && ((point - sensorOrigin).norm() < cfg_.m_minRange)) continue;
+            if ((cfg_.m_minRange > 0) && (pts_distance < cfg_.m_minRange)) continue;
 
-            if ((cfg_.m_maxRange < 0.0) || ((point - sensorOrigin).norm() <= cfg_.m_maxRange) ) {
+            if ((cfg_.m_maxRange < 0.0) || (pts_distance <= cfg_.m_maxRange) ) {
                 // free cells
                 if (m_octree->computeRayKeys(sensorOrigin, point, m_keyRay))
                     free_cells.insert(m_keyRay.begin(), m_keyRay.end());
@@ -201,8 +185,8 @@ namespace octomap {
                 }
             }
         }
-        timing.stop("1. Ray SetFreeOc");
-        timing.start("2. Update Octree");
+        timing[2].stop();
+        timing[3].start("Update Octree");
         // step C: update octree
         for (octomap::KeySet::iterator it = free_cells.begin(), end=free_cells.end(); it!= end; ++it){
             m_octree->updateNode(*it, false);
@@ -210,13 +194,14 @@ namespace octomap {
         for (octomap::KeySet::iterator it = occupied_cells.begin(), end=occupied_cells.end(); it!= end; ++it){
             m_octree->updateNode(*it, true);
         }
-        timing.stop("2. Update Octree");
-        timing.start("3. Prune Tree   ");
+        timing[3].stop();
+        
+        timing[4].start("Prune Tree");
         // step D: prune tree if config as true
         if(cfg_.m_prune){
             m_octree->prune();
         }
-        timing.stop("3. Prune Tree   ");
+        timing[4].stop();
     }
 
     void MapUpdater::filterGroundPlane(pcl::PointCloud<PointType>::Ptr const& pc, 
@@ -275,46 +260,50 @@ namespace octomap {
         voxel_grid.filter(*cloud_voxelized);
     }
 
-    void MapUpdater::saveMap(std::string const& folder_path, std::string const& file_name) {
+    std::string MapUpdater::saveMap(std::string const& folder_path) {
         pcl::PointCloud<PointType>::Ptr octomap_map_(new pcl::PointCloud<PointType>);
-        LOG(INFO) << "\nSaving octomap from octree to pcd file...";
-        // traverse the octree and save the points, traverse all leafs in the tree:
-        for (OcTreeT::iterator it = m_octree->begin(m_maxTreeDepth), end = m_octree->end(); it != end; ++it){
-            if (m_octree->isNodeOccupied(*it)){
-                // get the center of the voxel
-                double z = it.getZ();
-                double x = it.getX();
-                double y = it.getY();
-                PointType p(x, y, z);
-                octomap_map_->push_back(p);
-            }
-        }
-        *octomap_map_ += *ground_pts;
-        if (octomap_map_->size() == 0) {
-            LOG(WARNING) << "\noctomap_map_ is empty, no map is saved";
-            return;
-        }
-        pcl::io::savePCDFileBinary(folder_path + "/" + file_name + "_output.pcd", *octomap_map_);
-    }
+        LOG(INFO) << "Saving cleaned map to pcd file, we will save " << ANSI_MAGENTA << ((!cfg_.output_downsampled_map) ? "point-level" : "voxel-level") << ANSI_RESET << " map.";
 
-    void MapUpdater::saveRawMap(std::string const& folder_path, std::string const& file_name) {
-        pcl::PointCloud<PointType>::Ptr octomap_map_(new pcl::PointCloud<PointType>);
-        for(auto &pt: raw_map_ptr_->points) {
-            octomap::point3d point(pt.x, pt.y, pt.z);
-            octomap::OcTreeNode* node = m_octree->search(point);
-            if (node == nullptr){
-                LOG_IF(WARNING, cfg_.verbose_) << "Cannot find the Key in octomap at: " << point;
-                continue;
+        if(cfg_.output_downsampled_map){
+            cfg_.filename += "_voxel";
+            // traverse the octree and save the points, traverse all leafs in the tree:
+            for (OcTreeT::iterator it = m_octree->begin(m_maxTreeDepth), end = m_octree->end(); it != end; ++it){
+                if (m_octree->isNodeOccupied(*it)){
+                    // get the center of the voxel
+                    double z = it.getZ();
+                    double x = it.getX();
+                    double y = it.getY();
+                    PointType p(x, y, z);
+                    octomap_map_->push_back(p);
+                }
             }
-            if (m_octree->isNodeOccupied(node)){
-                octomap_map_->push_back(pt);
+            pcl::VoxelGrid<PointType> voxel_grid;
+            voxel_grid.setInputCloud(ground_pts);
+            voxel_grid.setLeafSize(cfg_.m_res, cfg_.m_res, cfg_.m_res);
+            voxel_grid.filter(*ground_pts);
+        }
+        else{
+            
+            for(auto &pt: raw_map_ptr_->points) {
+                octomap::point3d point(pt.x, pt.y, pt.z);
+                octomap::OcTreeNode* node = m_octree->search(point);
+                if (node == nullptr){
+                    LOG_IF(WARNING, cfg_.verbose_) << "Cannot find the Key in octomap at: " << point;
+                    continue;
+                }
+                if (m_octree->isNodeOccupied(node))
+                    octomap_map_->push_back(pt);
             }
         }
+        // NOTE(Qingwen): since we have already filtered the ground points at the beginning.
         *octomap_map_ += *ground_pts;
+
         if (octomap_map_->size() == 0) {
             LOG(WARNING) << "\noctomap_map_ is empty, no map is saved";
-            return;
+            return "[Error]: Empty map!";
         }
-        pcl::io::savePCDFileBinary(folder_path + "/" + file_name + "_output.pcd", *octomap_map_);
+        std::string filename = cfg_.filename + "_output.pcd";
+        pcl::io::savePCDFileBinary(folder_path + "/" + filename, *octomap_map_);
+        return filename;
     }
 }  // namespace octomap

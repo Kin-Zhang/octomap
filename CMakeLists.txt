@@ -1,6 +1,6 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.0.2)
 project(octomap_dynamic_map
-	VERSION 1.0.0
+	VERSION 1.1.0
 	DESCRIPTION "Octomap in benchmark on dm, dynamic in map"
 	LANGUAGES CXX
 )

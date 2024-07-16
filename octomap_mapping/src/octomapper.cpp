@@ -131,23 +131,24 @@ namespace octomap {
         
         timing[2].start("Ray SetFreeOc");
         // noise directly to occupied, no need ray for them
-        for(pcl::PointCloud<PointType>::const_iterator it = noise_cloud->begin(); it != noise_cloud->end(); ++it){
-            octomap::point3d point(it->x, it->y, it->z);
+        // NOTE(Qingwen 2024-07-14): I think... we don't need to add noise points to the map
+        // for(pcl::PointCloud<PointType>::const_iterator it = noise_cloud->begin(); it != noise_cloud->end(); ++it){
+        //     octomap::point3d point(it->x, it->y, it->z);
 
-            if ((cfg_.m_minRange > 0) && (point - sensorOrigin).norm() < cfg_.m_minRange) continue;
+        //     if ((cfg_.m_minRange > 0) && (point - sensorOrigin).norm() < cfg_.m_minRange) continue;
 
-            // maxrange check
-            if ((cfg_.m_maxRange > 0.0) && ((point - sensorOrigin).norm() > cfg_.m_maxRange) ) {
-                point = sensorOrigin + (point - sensorOrigin).normalized() * cfg_.m_maxRange;
-            }
+        //     // maxrange check
+        //     if ((cfg_.m_maxRange > 0.0) && ((point - sensorOrigin).norm() > cfg_.m_maxRange) ) {
+        //         point = sensorOrigin + (point - sensorOrigin).normalized() * cfg_.m_maxRange;
+        //     }
 
-            octomap::OcTreeKey endKey;
-            if (m_octree->coordToKeyChecked(point, endKey)){
-                occupied_cells.insert(endKey);
-                updateMinKey(endKey, m_updateBBXMin);
-                updateMaxKey(endKey, m_updateBBXMax);
-            }
-        }
+        //     octomap::OcTreeKey endKey;
+        //     if (m_octree->coordToKeyChecked(point, endKey)){
+        //         occupied_cells.insert(endKey);
+        //         updateMinKey(endKey, m_updateBBXMin);
+        //         updateMaxKey(endKey, m_updateBBXMax);
+        //     }
+        // }
         // step B: free on ray, occupied on endpoint
         for (pcl::PointCloud<PointType>::const_iterator it = pc_nonground->begin(); it != pc_nonground->end(); ++it){
             octomap::point3d point(it->x, it->y, it->z);

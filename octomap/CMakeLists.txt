@@ -30,9 +30,12 @@ IF(DEFINED ENV{OCTOMAP_OMP})
 ENDIF(DEFINED ENV{OCTOMAP_OMP})
 IF(OCTOMAP_OMP)
   FIND_PACKAGE( OpenMP REQUIRED)
+  message(STATUS "[Developer] OpenMP parallelization enabled")
   SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
   SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
   SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+ELSE(OCTOMAP_OMP)
+  message(STATUS "[Developer] OpenMP parallelization disabled")
 ENDIF(OCTOMAP_OMP)
 
 # Set output directories for libraries and executables

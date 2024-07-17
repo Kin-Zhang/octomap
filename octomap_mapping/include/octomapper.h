@@ -56,9 +56,9 @@ struct Config {
   bool m_prune = true;  // prune the tree after insertion of new data
 
   // range, // -1 means no range limit
-  float m_maxRange = -1.0;
-  float m_minRange = -1.0;
-
+  double m_maxRange = -1.0;
+  double m_minRange = -1.0;
+  bool need_transform = false;
 
   bool verbose_ = false;  // print out logs
   bool replace_intensity = false;
@@ -81,6 +81,7 @@ struct Config {
     m_res = read(tbl["octomap"]["resolution"], m_res);
     m_maxRange = read(tbl["octomap"]["maxRange"], m_maxRange);
     m_minRange = read(tbl["octomap"]["minRange"], m_minRange);
+    need_transform = read(tbl["octomap"]["need_transform"], need_transform);
 
     probHit = read(tbl["octomap"]["probHit"], probHit);
     probMiss = read(tbl["octomap"]["probMiss"], probMiss);
@@ -99,6 +100,7 @@ struct Config {
 
     output_downsampled_map = read(tbl["output"]["downsampled"], output_downsampled_map);
     filename = read(tbl["output"]["filename"], filename);
+    verbose_ = read(tbl["output"]["verbose"], verbose_);
 	}
 
 
@@ -135,7 +137,8 @@ private:
     void filterGroundPlane(pcl::PointCloud<PointType>::Ptr const& pc, 
                            pcl::PointCloud<PointType>::Ptr &ground, 
                            pcl::PointCloud<PointType>::Ptr &nonground);
-    pcl::PointCloud<PointType>::Ptr noise_cloud;
+    float x_origin_, y_origin_, z_origin_ = 0.0;
+    bool flag_origin_ = false;
 
 protected:
     inline static void updateMinKey(const octomap::OcTreeKey& in, octomap::OcTreeKey& min) {

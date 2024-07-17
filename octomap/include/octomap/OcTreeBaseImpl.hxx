@@ -311,7 +311,10 @@ namespace octomap {
 
     // scale to resolution and shift center for tree_max_val
     int scaled_coord =  ((int) floor(resolution_factor * coordinate)) + tree_max_val;
-
+    // NOTE(Qingwen): tree_max_val default is 32768, it can be exceeded sometimes.... 
+    // std::cout << "scaled_coord: " << scaled_coord << std::endl;
+    // std::cout << "tree_max_val: " << tree_max_val << std::endl;
+    // std::cout << "resolution_factor: " << resolution_factor << " coordinate: " << coordinate << std::endl;
     // keyval within range of tree?
     if (( scaled_coord >= 0) && (((unsigned int) scaled_coord) < (2*tree_max_val))) {
       keyval = scaled_coord;

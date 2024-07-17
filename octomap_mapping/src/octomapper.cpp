@@ -15,7 +15,7 @@
 
 #include <filesystem>
 #include <glog/logging.h>
-
+#include <pcl/common/transforms.h>
 #include <pcl/filters/filter.h>
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/filters/extract_indices.h>
@@ -46,7 +46,6 @@ namespace octomap {
         m_maxTreeDepth = m_treeDepth;
 
         ground_pts.reset(new pcl::PointCloud<PointType>());
-        noise_cloud.reset(new pcl::PointCloud<PointType>());
         raw_map_ptr_.reset(new pcl::PointCloud<PointType>());
         LOG(INFO) << "resolution: " << cfg_.m_res << ". Ground filter: " 
         << cfg_.filterGroundPlane << ", Noise filter: " << cfg_.filterNoise;
@@ -58,6 +57,31 @@ namespace octomap {
         float y_curr = single_pc->sensor_origin_[1];
         float z_curr = single_pc->sensor_origin_[2];
 
+        octomap::point3d sensorOrigin(x_curr, y_curr, z_curr);
+        if (!m_octree->coordToKeyChecked(sensorOrigin, m_updateBBXMin)
+            || !m_octree->coordToKeyChecked(sensorOrigin, m_updateBBXMax))
+        {
+            LOG(WARNING) << "Could not generate Key for origin:" << sensorOrigin;
+            LOG(WARNING) << "Skipping this frame. Please check your pose correctly and small enough. Otherwise Octomap index will be out of bound.";
+            return;
+        }
+
+        LOG_IF(INFO, cfg_.verbose_) << "x_curr: " << x_curr << ", y_curr: " << y_curr;
+
+        if (cfg_.need_transform){
+            // NOTE(Qingwen): Since sometime the VIEWPOINT/pose is on map frame but the point cloud is not in the map frame, 
+            LOG_IF(INFO, cfg_.verbose_) << "Transforming the point cloud to the map frame";
+            float qx = single_pc->sensor_orientation_.x();
+            float qy = single_pc->sensor_orientation_.y();
+            float qz = single_pc->sensor_orientation_.z();
+            float qw = single_pc->sensor_orientation_.w();
+
+            Eigen::Matrix4f transform = Eigen::Matrix4f::Identity();
+            transform.block<3,3>(0,0) = Eigen::Quaternionf(qw, qx, qy, qz).toRotationMatrix();
+            transform.block<3,1>(0,3) = Eigen::Vector3f(x_curr, y_curr, z_curr);
+            pcl::transformPointCloud(*single_pc, *single_pc, transform);
+        }
+
         pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered (new pcl::PointCloud<pcl::PointXYZ>);
         if(cfg_.filterNoise){
             pcl::StatisticalOutlierRemoval<PointType> sor(true);
@@ -65,28 +89,13 @@ namespace octomap {
             sor.setMeanK (cfg_.filterMeanK);
             sor.setStddevMulThresh (cfg_.StddevMulThresh);
             sor.filter (*cloud_filtered);
-            auto noise_indices = sor.getRemovedIndices();
-
-            noise_cloud->clear();
-            pcl::ExtractIndices<PointType> eifilter(false); // Initializing with true will allow us to extract the removed indices
-            eifilter.setInputCloud (single_pc);
-            eifilter.setIndices(noise_indices);
-            eifilter.filter (*noise_cloud);
         }
         else{
             std::vector<int> indices;
             pcl::removeNaNFromPointCloud(*single_pc, *cloud_filtered, indices);
         }
 
-        *raw_map_ptr_ += *single_pc;
-        LOG_IF(INFO, cfg_.verbose_) << "x_curr: " << x_curr << ", y_curr: " << y_curr;
-
-        octomap::point3d sensorOrigin(x_curr, y_curr, z_curr);
-        if (!m_octree->coordToKeyChecked(sensorOrigin, m_updateBBXMin)
-            || !m_octree->coordToKeyChecked(sensorOrigin, m_updateBBXMax))
-        {
-            LOG(WARNING) << "Could not generate Key for origin:" << sensorOrigin;
-        }
+        *raw_map_ptr_ += *cloud_filtered;
         
         pcl::PointCloud<PointType>::Ptr pc_nonground(new pcl::PointCloud<PointType>);
         pcl::PointCloud<PointType>::Ptr pc_ground(new pcl::PointCloud<PointType>);
@@ -130,25 +139,6 @@ namespace octomap {
         timing[1].stop();
         
         timing[2].start("Ray SetFreeOc");
-        // noise directly to occupied, no need ray for them
-        // NOTE(Qingwen 2024-07-14): I think... we don't need to add noise points to the map
-        // for(pcl::PointCloud<PointType>::const_iterator it = noise_cloud->begin(); it != noise_cloud->end(); ++it){
-        //     octomap::point3d point(it->x, it->y, it->z);
-
-        //     if ((cfg_.m_minRange > 0) && (point - sensorOrigin).norm() < cfg_.m_minRange) continue;
-
-        //     // maxrange check
-        //     if ((cfg_.m_maxRange > 0.0) && ((point - sensorOrigin).norm() > cfg_.m_maxRange) ) {
-        //         point = sensorOrigin + (point - sensorOrigin).normalized() * cfg_.m_maxRange;
-        //     }
-
-        //     octomap::OcTreeKey endKey;
-        //     if (m_octree->coordToKeyChecked(point, endKey)){
-        //         occupied_cells.insert(endKey);
-        //         updateMinKey(endKey, m_updateBBXMin);
-        //         updateMaxKey(endKey, m_updateBBXMax);
-        //     }
-        // }
         // step B: free on ray, occupied on endpoint
         for (pcl::PointCloud<PointType>::const_iterator it = pc_nonground->begin(); it != pc_nonground->end(); ++it){
             octomap::point3d point(it->x, it->y, it->z);
@@ -179,22 +169,20 @@ namespace octomap {
                         free_cells.insert(endKey);
                         updateMinKey(endKey, m_updateBBXMin);
                         updateMaxKey(endKey, m_updateBBXMax);
-                    } 
-                    else{
-                        LOG(WARNING) << "Could not generate Key for endpoint " << new_end;
                     }
+                    else
+                        LOG(WARNING) << "Could not generate Key for endpoint " << new_end;
                 }
             }
         }
         timing[2].stop();
         timing[3].start("Update Octree");
-        // step C: update octree
-        for (octomap::KeySet::iterator it = free_cells.begin(), end=free_cells.end(); it!= end; ++it){
+        for (octomap::KeySet::iterator it = free_cells.begin(), end=free_cells.end(); it!= end; ++it)
             m_octree->updateNode(*it, false);
-        }
-        for (octomap::KeySet::iterator it = occupied_cells.begin(), end=occupied_cells.end(); it!= end; ++it){
+
+        for (octomap::KeySet::iterator it = occupied_cells.begin(), end=occupied_cells.end(); it!= end; ++it)
             m_octree->updateNode(*it, true);
-        }
+
         timing[3].stop();
         
         timing[4].start("Prune Tree");

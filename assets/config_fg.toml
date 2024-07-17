@@ -8,6 +8,7 @@ probMiss = 0.4
 thresMin = 0.12
 thresMax = 0.97
 pruneTree = true
+need_transform = false # if query frame didn't transform to map frame, set it to true
 
 # ===> Ground Segmentation, so that we will not count ground
 [ground]

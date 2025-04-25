@@ -10,9 +10,9 @@ Author & Maintainer: [Qingwen Zhang](https://kin-zhang.github.io/). Please give 
 
 ## 0. Setup
 
-System I tested: Ubuntu 18.04, 20.04.
+System I tested: Ubuntu 18.04, 20.04, 22.04.
 
-Dependencies: PCL [Read and write Point Cloud], glog & gflag [Debug Printing]. Normally you may have PCL installed because of others like ROS/ROS2 etc.
+Dependencies: CMake [install tips](https://askubuntu.com/a/1157132/1159540), PCL [Read and write Point Cloud], glog & gflag [Debug Printing]. Normally you may have Cmake&PCL installed because of others like ROS/ROS2 etc.
 
 ```bash
 sudo apt update && sudo apt install -y libpcl-dev 

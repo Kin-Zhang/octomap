@@ -1,8 +1,8 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.0.2)
 project(octomap_dynamic_map
-	VERSION 1.1.0
+	VERSION 1.1.1
 	DESCRIPTION "Octomap in benchmark on dm, dynamic in map"
-	LANGUAGES CXX
+	LANGUAGES C CXX
 )
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)  # enables -fPIC in applicable compilers (required to avoid link errors in some cases)
@@ -29,7 +29,6 @@ find_package(gflags REQUIRED)
 set(LOG_LIB glog::glog gflags)
 
 find_package(Eigen3 REQUIRED)
-find_package(yaml-cpp REQUIRED)
 find_package(PCL REQUIRED)
 find_package(octomap REQUIRED)
 set(FUN_LIB Eigen3::Eigen ${OCTOMAP_LIBRARIES} ${PCL_LIBRARIES})
@@ -38,7 +37,7 @@ include_directories(${OCTOMAP_INCLUDE_DIRS})
 include_directories(octomap_mapping/include)
 add_library(dm_lib SHARED octomap_mapping/src/octomapper.cpp)
 add_dependencies(dm_lib octomap)
-target_link_libraries(dm_lib ${LOG_LIB} yaml-cpp ${FUN_LIB})
+target_link_libraries(dm_lib ${LOG_LIB} ${FUN_LIB})
 
 ############
 # BINARIES #
